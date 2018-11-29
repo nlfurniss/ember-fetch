@@ -12,7 +12,7 @@ export default function mungOptionsForFetch(_options) {
   }, _options);
 
   // Default to 'GET' in case `type` is not passed in (mimics jQuery.ajax).
-  options.method = options.method || options.type || 'GET';
+  options.method = (options.method || options.type || 'GET').toUpperCase();
 
   if (options.data) {
     // GET and HEAD requests can't have a `body`
@@ -24,18 +24,16 @@ export default function mungOptionsForFetch(_options) {
         options.url += `${queryParamDelimiter}${serializeQueryParams(options.data)}`;
       }
     } else {
-      // NOTE: a request's body cannot be an object, so we stringify it if it is.
+      // NOTE: a request's body cannot be a POJO, so we stringify it if it is.
       // JSON.stringify removes keys with values of `undefined` (mimics jQuery.ajax).
-      // If the data is already a string, we assume it's already been stringified.
-      options.body = typeof options.data !== 'string' ? JSON.stringify(options.data) : options.data;
+      // If the data is not a POJO (it's a String, FormData, etc), we just set it.
+      // If the data is a string, we assume it's a stringified object.
+      if (Object.prototype.toString.call(options.data) === '[object Object]') {
+        options.body = JSON.stringify(options.data);
+      } else {
+        options.body = options.data;
+      }
     }
-  }
-
-  // Mimics the default behavior in Ember Data's `ajaxOptions`, namely to set the
-  // 'Content-Type' header to application/json if it is not a GET request and it has a body.
-  if (options.method !== 'GET' && options.body && (options.headers === undefined || !(options.headers['Content-Type'] || options.headers['content-type']))) {
-    options.headers = options.headers || {};
-    options.headers['Content-Type'] = 'application/json; charset=utf-8';
   }
 
   return options;
